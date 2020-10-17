@@ -9,7 +9,7 @@ local tconcat = table.concat;
 
 -- Addon
 local modName = ...;
-local tt = CreateFrame("Frame",modName,UIParent, BackdropTemplateMixin and "BackdropTemplate");
+local tt = CreateFrame("Frame",modName,UIParent, "BackdropTemplate");
 
 -- Global Chat Message Function
 function AzMsg(msg) DEFAULT_CHAT_FRAME:AddMessage(tostring(msg):gsub("|1","|cffffff80"):gsub("|2","|cffffffff"),0.5,0.75,1.0); end
@@ -157,7 +157,7 @@ local TT_DefaultConfig = {
 	if_itemQualityBorder = true,
 	if_showAuraCaster = true,
 	if_showItemLevelAndId = false,				-- Used to be true, but changed due to the itemLevel issues
-	if_showQuestLevelAndId = true,
+	if_showQuestLevelAndId = false,
 	if_showSpellIdAndRank = false,
 	if_showCurrencyId = true,					-- Az: no option for this added to TipTac/options yet!
 	if_showAchievementIdAndCategory = false,	-- Az: no option for this added to TipTac/options yet!
@@ -229,7 +229,8 @@ local targetedByList;
 tt.u = u;
 
 -- Hi-jack the GTT backdrop table for our own evil needs
-local tipBackdrop = GAME_TOOLTIP_BACKDROP_STYLE_DEFAULT or TOOLTIP_BACKDROP_STYLE_DEFAULT;
+local tipBackdrop = TOOLTIP_BACKDROP_STYLE_DEFAULT;
+
 tipBackdrop.backdropColor = CreateColor(1,1,1);
 tipBackdrop.backdropBorderColor = CreateColor(1,1,1);
 
@@ -318,7 +319,7 @@ tt.text = tt:CreateFontString(nil,"ARTWORK","GameFontHighlight");
 tt.text:SetText("TipTacAnchor");
 tt.text:SetPoint("LEFT",6,0);
 
-tt.close = CreateFrame("Button",nil,tt,"UIPanelCloseButton", BackdropTemplateMixin and "BackdropTemplate");
+tt.close = CreateFrame("Button",nil,tt,"UIPanelCloseButton");
 tt.close:SetSize(24,24);
 tt.close:SetPoint("RIGHT");
 
@@ -499,7 +500,7 @@ function tt:ApplySettings()
 			end
 			SetupGradientTip(tip);
 			tip:SetScale(cfg.gttScale);
-			tt:ApplyBackdrop(tip);
+			-- tt:ApplyBackdrop(tip);
 		end
 	end
 
@@ -514,9 +515,45 @@ function tt:ApplySettings()
 	self:SendElementEvent("OnApplyConfig",cfg);
 end
 
+function ApplyCustomBackdrop (self, style)
+--	self.customBackdropAlpha = 0;
+--  SharedTooltip_SetBackdropStyle(self, tipBackdrop);
+	-- self:SetBackdrop(style);
+	-- self:SetBackdropBorderColor((style.backdropBorderColor):GetRGB());
+	-- self:SetBackdropColor((style.backdropColor):GetRGB());
+
+	if self.TopOverlay then
+		if style.overlayAtlasTop then
+			self.TopOverlay:SetAtlas(style.overlayAtlasTop, true);
+			self.TopOverlay:SetScale(style.overlayAtlasTopScale or 1.0);
+			self.TopOverlay:SetPoint("CENTER", self, "TOP", style.overlayAtlasTopXOffset or 0, style.overlayAtlasTopYOffset or 0);
+			self.TopOverlay:Show();
+		else
+			self.TopOverlay:Hide();
+		end
+	end
+
+	if self.BottomOverlay then
+		if style.overlayAtlasBottom then
+			self.BottomOverlay:SetAtlas(style.overlayAtlasBottom, true);
+			self.BottomOverlay:SetScale(style.overlayAtlasBottomScale or 1.0);
+			self.BottomOverlay:SetPoint("CENTER", self, "BOTTOM", style.overlayAtlasBottomXOffset or 0, style.overlayAtlasBottomYOffset or 0);
+			self.BottomOverlay:Show();
+		else
+			self.BottomOverlay:Hide();
+		end
+	end
+
+	if style.padding then
+		self:SetPadding(style.padding.right, style.padding.bottom, style.padding.left, style.padding.top);
+	end
+end
+
+hooksecurefunc("SharedTooltip_SetBackdropStyle", ApplyCustomBackdrop)
+
 -- Applies the backdrop, color and border color. The GTT will often reset these internally.
 function tt:ApplyBackdrop(tip)
-	SharedTooltip_SetBackdropStyle(tip,tipBackdrop)
+	SharedTooltip_SetBackdropStyle(tip, tipBackdrop)
 end
 
 --------------------------------------------------------------------------------------------------------
@@ -528,6 +565,7 @@ function tt:AnchorFrameToMouse(frame)
 	local x, y = GetCursorPosition();
 	local effScale = frame:GetEffectiveScale();
 	frame:ClearAllPoints();
+
 	frame:SetPoint(gtt_anchorPoint,UIParent,"BOTTOMLEFT",(x / effScale + cfg.mouseOffsetX),(y / effScale + cfg.mouseOffsetY));
 end
 
@@ -715,14 +753,14 @@ end
 -- EventHook: OnShow
 function gttScriptHooks:OnShow()
 	-- Anchor GTT to Mouse -- Az: Initial mouse anchoring is now being done in GTT_SetDefaultAnchor (remove if there are no issues)
-	-- From path 9.0.1 there is an issue with mouse anchoring in buff frames, removing old comment block for the code below
-	gtt_anchorType, gtt_anchorPoint = GetAnchorPosition();
-	if (gtt_anchorType == "mouse") and (self.default) then
-		local gttAnchor = self:GetAnchorType();
-		if (gttAnchor ~= "ANCHOR_CURSOR") and (gttAnchor ~= "ANCHOR_CURSOR_RIGHT") then
-			tt:AnchorFrameToMouse(self);
-		end
-	end
+--	gtt_anchorType, gtt_anchorPoint = GetAnchorPosition();
+--	if (gtt_anchorType == "mouse") and (self.default) then
+--		local gttAnchor = self:GetAnchorType();
+--		if (gttAnchor ~= "ANCHOR_CURSOR") and (gttAnchor ~= "ANCHOR_CURSOR_RIGHT") then
+--			tt:AnchorFrameToMouse(self);
+--		end
+--	end
+
 	-- Ensures that default anchored world frame tips have the proper color, their internal function seems to set them to a dark blue color
 	-- Tooltips from world objects that change cursor seems to also require this. (Tested in 8.0/BfA)
 	if (self:IsOwned(UIParent)) and (not self:GetUnit()) then
@@ -822,7 +860,7 @@ end
 function gttScriptHooks:OnTooltipCleared()
 	-- WoD: resetting the back/border color seems to be a necessary action, otherwise colors may stick when showing the next tooltip thing (world object tips)
 	-- BfA: The tooltip now also clears the backdrop in adition to color and bordercolor, so set it again here
-	tt:ApplyBackdrop(self);
+	-- tt:ApplyBackdrop(self);
 
 	-- remove the padding that might have been set to fit health/power bars
 	tt.xPadding = 0;
@@ -935,7 +973,7 @@ function tt:HookTips()
 --	end
 
 	-- Replace GameTooltip_SetDefaultAnchor (For Re-Anchoring) -- Patch 3.2 made this function secure
-	hooksecurefunc("GameTooltip_SetDefaultAnchor",GTT_SetDefaultAnchor);
+	hooksecurefunc("GameTooltip_SetDefaultAnchor", GTT_SetDefaultAnchor);
 
 	-- Clear this function as it's not needed anymore
 	self.HookTips = nil;

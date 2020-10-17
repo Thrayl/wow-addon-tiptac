@@ -133,6 +133,9 @@ end
 -- Format Bar Text
 local function SetFormattedBarValues(self,val,max,type)
 	local fs = self.text;
+	
+	fs:SetFont(GameFontNormal:GetFont());
+	
 	if (type == "none") then
 		fs:SetText("");
 	elseif (type == "value") or (max == 0) then -- max should never be zero, but if it is, dont let it pass through to the "percent" type, or there will be an error
@@ -154,7 +157,7 @@ end
 
 -- Creates a bar with the given mixins
 function ttBars:CreateBar(parent,tblMixin)
-	local bar = CreateFrame("StatusBar",nil,parent, BackdropTemplateMixin and "BackdropTemplate");
+	local bar = CreateFrame("StatusBar",nil,parent);
 	bar:Hide();
 
 --	bar:SetWidth(0);	-- Az: As of patch 3.3.3, setting the initial size will somehow mess up the texture. Previously this initilization was needed to fix an anchoring issue.

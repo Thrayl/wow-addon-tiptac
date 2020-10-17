@@ -1,7 +1,7 @@
 local _G = getfenv(0);
 local unpack = unpack;
 local UnitName = UnitName;
-local GetQuestGreenRange = UnitQuestTrivialLevelRange("player");
+local GetQuestGreenRange = GetQuestGreenRange;
 local gtt = GameTooltip;
 
 -- TipTac refs
